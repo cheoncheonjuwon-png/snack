@@ -1,160 +1,169 @@
-import turtle
-import time
-import random
+import streamlit as st
+import streamlit.components.v1 as components
 
-delay = 0.1
-score = 0
-high_score = 0
+st.set_page_config(page_title="지렁이 게임", page_icon="🐍")
 
-# 1. 화면 설정
-wn = turtle.Screen()
-wn.title("파이썬 지렁이 게임")
-wn.bgcolor("black")
-wn.setup(width=600, height=600)
-wn.tracer(0) # 화면 갱신을 수동으로 설정
+st.title("🐍 지렁이 게임 (Snake Game)")
+st.caption("키보드 **화살표 키(↑, ↓, ←, →)**로 조종하세요!")
 
-# 2. 지렁이 머리 설정
-head = turtle.Turtle()
-head.speed(0)
-head.shape("square")
-head.color("white")
-head.penup()
-head.goto(0, 0)
-head.direction = "stop"
+# 웹 브라우저에서 동작하는 HTML5 Canvas 기반 지렁이 게임
+snake_game_html = """
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #0e1117;
+            color: #ffffff;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 10px;
+        }
+        #score-board {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        canvas {
+            border: 3px solid #ff4b4b;
+            border-radius: 8px;
+            background-color: #1a1c23;
+        }
+        .btn {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background-color: #ff4b4b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #d43b3b;
+        }
+    </style>
+</head>
+<body>
 
-# 3. 먹이 설정
-food = turtle.Turtle()
-food.speed(0)
-food.shape("circle")
-food.color("red")
-food.penup()
-food.goto(0, 100)
+    <div id="score-board">점수: <span id="score">0</span></div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <button class="btn" onclick="resetGame()">다시 시작</button>
 
-# 4. 몸통 리스트
-segments = []
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("score");
 
-# 5. 점수판 설정
-pen = turtle.Turtle()
-pen.speed(0)
-pen.shape("square")
-pen.color("white")
-pen.penup()
-pen.hideturtle()
-pen.goto(0, 260)
-pen.write("점수: 0  최고 점수: 0", align="center", font=("Courier", 18, "normal"))
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
 
-# 6. 이동 함수
-def go_up():
-    if head.direction != "down":
-        head.direction = "up"
+        let snake = [{ x: 10, y: 10 }];
+        let food = { x: 15, y: 15 };
+        let dx = 0;
+        let dy = 0;
+        let score = 0;
+        let gameStarted = false;
 
-def go_down():
-    if head.direction != "up":
-        head.direction = "down"
+        document.addEventListener("keydown", changeDirection);
 
-def go_left():
-    if head.direction != "right":
-        head.direction = "left"
+        function gameLoop() {
+            if (!gameStarted) return;
+            moveSnake();
+            if (checkGameOver()) {
+                alert("게임 오버! 최종 점수: " + score);
+                resetGame();
+                return;
+            }
+            clearCanvas();
+            drawFood();
+            drawSnake();
+        }
 
-def go_right():
-    if head.direction != "left":
-        head.direction = "right"
+        function clearCanvas() {
+            ctx.fillStyle = "#1a1c23";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
-def move():
-    if head.direction == "up":
-        y = head.ycor()
-        head.sety(y + 20)
+        function drawSnake() {
+            snake.forEach((part, index) => {
+                ctx.fillStyle = index === 0 ? "#66BB6A" : "#4CAF50";
+                ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
+            });
+        }
 
-    if head.direction == "down":
-        y = head.ycor()
-        head.sety(y - 20)
+        function drawFood() {
+            ctx.fillStyle = "#FF5252";
+            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+        }
 
-    if head.direction == "left":
-        x = head.xcor()
-        head.setx(x - 20)
+        function moveSnake() {
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            snake.unshift(head);
 
-    if head.direction == "right":
-        x = head.xcor()
-        head.setx(x + 20)
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                scoreElement.innerText = score;
+                generateFood();
+            } else {
+                snake.pop();
+            }
+        }
 
-# 7. 키보드 바인딩
-wn.listen()
-wn.onkeypress(go_up, "Up")
-wn.onkeypress(go_down, "Down")
-wn.onkeypress(go_left, "Left")
-wn.onkeypress(go_right, "Right")
+        function generateFood() {
+            food.x = Math.floor(Math.random() * tileCount);
+            food.y = Math.floor(Math.random() * tileCount);
+        }
 
-# 8. 메인 게임 루프
-while True:
-    wn.update()
+        function checkGameOver() {
+            const head = snake[0];
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                return true;
+            }
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
-    # 벽 충돌 체크
-    if head.xcor() > 290 or head.xcor() < -290 or head.ycor() > 290 or head.ycor() < -290:
-        time.sleep(1)
-        head.goto(0, 0)
-        head.direction = "stop"
+        function changeDirection(event) {
+            const keyPressed = event.keyCode;
+            const LEFT = 37, UP = 38, RIGHT = 39, DOWN = 40;
 
-        # 몸통 제거
-        for segment in segments:
-            segment.goto(1000, 1000)
-        segments.clear()
+            if (!gameStarted && [LEFT, UP, RIGHT, DOWN].includes(keyPressed)) {
+                gameStarted = true;
+            }
 
-        # 점수 초기화
-        score = 0
-        pen.clear()
-        pen.write(f"점수: {score}  최고 점수: {high_score}", align="center", font=("Courier", 18, "normal"))
+            if (keyPressed === LEFT && dx === 0) { dx = -1; dy = 0; }
+            if (keyPressed === UP && dy === 0) { dx = 0; dy = -1; }
+            if (keyPressed === RIGHT && dx === 0) { dx = 1; dy = 0; }
+            if (keyPressed === DOWN && dy === 0) { dx = 0; dy = 1; }
+        }
 
-    # 먹이를 먹었을 때
-    if head.distance(food) < 20:
-        # 먹이 위치 이동
-        x = random.randint(-14, 14) * 20
-        y = random.randint(-14, 14) * 20
-        food.goto(x, y)
+        function resetGame() {
+            snake = [{ x: 10, y: 10 }];
+            dx = 0;
+            dy = 0;
+            score = 0;
+            gameStarted = false;
+            scoreElement.innerText = score;
+            generateFood();
+            clearCanvas();
+            drawFood();
+            drawSnake();
+        }
 
-        # 몸통 추가
-        new_segment = turtle.Turtle()
-        new_segment.speed(0)
-        new_segment.shape("square")
-        new_segment.color("grey")
-        new_segment.penup()
-        segments.append(new_segment)
+        setInterval(gameLoop, 100);
+        resetGame();
+    </script>
+</body>
+</html>
+"""
 
-        # 점수 증가
-        score += 10
-        if score > high_score:
-            high_score = score
-
-        pen.clear()
-        pen.write(f"점수: {score}  최고 점수: {high_score}", align="center", font=("Courier", 18, "normal"))
-
-    # 몸통 따라오게 하기 (뒤에서부터 앞 몸통의 위치로)
-    for index in range(len(segments) - 1, 0, -1):
-        x = segments[index - 1].xcor()
-        y = segments[index - 1].ycor()
-        segments[index].goto(x, y)
-
-    if len(segments) > 0:
-        x = head.xcor()
-        y = head.ycor()
-        segments[0].goto(x, y)
-
-    move()
-
-    # 자기 몸통 충돌 체크
-    for segment in segments:
-        if segment.distance(head) < 20:
-            time.sleep(1)
-            head.goto(0, 0)
-            head.direction = "stop"
-
-            for seg in segments:
-                seg.goto(1000, 1000)
-            segments.clear()
-
-            score = 0
-            pen.clear()
-            pen.write(f"점수: {score}  최고 점수: {high_score}", align="center", font=("Courier", 18, "normal"))
-
-    time.sleep(delay)
-
-wn.mainloop()
+components.html(snake_game_html, height=530)
