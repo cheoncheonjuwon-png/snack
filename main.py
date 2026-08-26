@@ -1,13 +1,11 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 페이지 설정 (넓게 보기 위해 wide 모드 사용)
-st.set_page_config(page_title="프리미엄 지렁이 게임", page_icon="🐍", layout="wide")
+st.set_page_config(page_title="프리미엄 지렁이 게임", page_icon="🍎", layout="wide")
 
-st.title("🐍 프리미엄 지렁이 게임 (Premium Snake)")
+st.title("🍎 프리미엄 지렁이 게임 (Smooth Snake)")
 st.write("키보드 **화살표 키(↑, ↓, ←, →)**를 사용하여 지렁이를 조종하세요!")
 
-# 더 크고 화려한 HTML/JavaScript 게임 코드
 snake_game_html = """
 <!DOCTYPE html>
 <html lang="ko">
@@ -19,7 +17,7 @@ snake_game_html = """
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background-color: #0e1117; /* Streamlit 테마와 맞춤 */
+            background-color: #0e1117;
             color: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
@@ -33,8 +31,8 @@ snake_game_html = """
             font-size: 28px;
             font-weight: bold;
             margin-bottom: 15px;
-            color: #4CAF50;
-            text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+            color: #81C784;
+            text-shadow: 0 0 10px rgba(129, 199, 132, 0.5);
         }
         canvas {
             border: 5px solid #333;
@@ -66,7 +64,6 @@ snake_game_html = """
 
     <div id="game-container">
         <div id="score-board">점수: <span id="score">0</span></div>
-        <!-- 캔버스 크기를 600x600으로 확대 -->
         <canvas id="gameCanvas" width="600" height="600"></canvas>
         <br>
         <button class="btn" onclick="resetGame()">게임 다시 시작</button>
@@ -77,11 +74,9 @@ snake_game_html = """
         const ctx = canvas.getContext("2d");
         const scoreElement = document.getElementById("score");
 
-        // 게임 설정
-        const gridSize = 25; // 그리드 크기를 키워서 지렁이를 더 크게 함
+        const gridSize = 25;
         const tileCount = canvas.width / gridSize;
 
-        // 게임 상태 변수
         let snake = [];
         let food = { x: 15, y: 15 };
         let dx = 0;
@@ -93,31 +88,6 @@ snake_game_html = """
 
         document.addEventListener("keydown", changeDirection);
 
-        // 둥근 사각형 그리기 함수 (지렁이 몸통용)
-        function drawRoundedRect(x, y, width, height, radius, color) {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.moveTo(x + radius, y);
-            ctx.lineTo(x + width - radius, y);
-            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-            ctx.lineTo(x + width, y + height - radius);
-            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-            ctx.lineTo(x + radius, y + height);
-            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-            ctx.lineTo(x, y + radius);
-            ctx.quadraticCurveTo(x, y, x + radius, y);
-            ctx.closePath();
-            ctx.fill();
-        }
-
-        // 원 그리기 함수 (지렁이 머리/꼬리, 먹이용)
-        function drawCircle(x, y, radius, color) {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
         function gameLoop() {
             if (!gameStarted || isGameOver) return;
             moveSnake();
@@ -127,9 +97,9 @@ snake_game_html = """
                 return;
             }
             clearCanvas();
-            drawGrid(); // 배경 그리드 추가
-            drawFood();
-            drawSnake();
+            drawGrid();
+            drawApple();
+            drawSmoothSnake();
         }
 
         function clearCanvas() {
@@ -137,7 +107,6 @@ snake_game_html = """
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        // 배경에 은은한 그리드 그리기 (화려함 추가)
         function drawGrid() {
             ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
             ctx.lineWidth = 1;
@@ -153,79 +122,127 @@ snake_game_html = """
             }
         }
 
-        function drawSnake() {
-            snake.forEach((part, index) => {
-                const centerX = part.x * gridSize + gridSize / 2;
-                const centerY = part.y * gridSize + gridSize / 2;
-                const radius = gridSize / 2 - 2;
+        // 1. 마디 없는 매끄러운 지렁이 그리기
+        function drawSmoothSnake() {
+            if (snake.length === 0) return;
 
-                if (index === 0) {
-                    // 머리: 가장 밝은 녹색 원 + 눈
-                    drawCircle(centerX, centerY, radius + 2, "#81C784");
-                    
-                    // 눈 그리기 (이동 방향에 따라 위치 조정)
-                    ctx.fillStyle = "#fff"; // 눈 흰자
-                    const eyeOffset = radius / 2;
-                    const eyeRadius = radius / 4;
-                    
-                    let eyeX1, eyeY1, eyeX2, eyeY2;
-                    if (dx === 1) { // 우
-                        eyeX1 = centerX + eyeOffset; eyeY1 = centerY - eyeOffset;
-                        eyeX2 = centerX + eyeOffset; eyeY2 = centerY + eyeOffset;
-                    } else if (dx === -1) { // 좌
-                        eyeX1 = centerX - eyeOffset; eyeY1 = centerY - eyeOffset;
-                        eyeX2 = centerX - eyeOffset; eyeY2 = centerY + eyeOffset;
-                    } else if (dy === -1) { // 상
-                        eyeX1 = centerX - eyeOffset; eyeY1 = centerY - eyeOffset;
-                        eyeX2 = centerX + eyeOffset; eyeY2 = centerY - eyeOffset;
-                    } else { // 하 (또는 정지)
-                        eyeX1 = centerX - eyeOffset; eyeY1 = centerY + eyeOffset;
-                        eyeX2 = centerX + eyeOffset; eyeY2 = centerY + eyeOffset;
-                    }
-                    drawCircle(eyeX1, eyeY1, eyeRadius, "#fff");
-                    drawCircle(eyeX2, eyeY2, eyeRadius, "#fff");
-                    drawCircle(eyeX1, eyeY1, eyeRadius/2, "#000"); // 눈동자
-                    drawCircle(eyeX2, eyeY2, eyeRadius/2, "#000");
+            const radius = gridSize / 2;
 
-                } else if (index === snake.length - 1) {
-                    // 꼬리: 몸통보다 약간 작고 어두운 녹색 원
-                    drawCircle(centerX, centerY, radius - 3, "#2E7D32");
-                } else {
-                    // 몸통: 중간 녹색 둥근 사각형 (둥글게 표현)
-                    const colorValue = 100 - (index * 3); // 뒤로 갈수록 살짝 어두워지는 효과
-                    drawRoundedRect(part.x * gridSize + 2, part.y * gridSize + 2, gridSize - 4, gridSize - 4, 8, `hsl(122, 39%, ${Math.max(colorValue, 40)}%)`);
-                }
-            });
+            // [A] 마디 연결선 (두꺼운 선으로 선을 이어 마디 경계를 완전히 없앰)
+            ctx.beginPath();
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.lineWidth = radius * 2 - 2; // 몸통 두께
+            ctx.strokeStyle = "#4CAF50";    // 몸통 색상
+
+            // 꼬리부터 머리까지 선 연결
+            const headCenter = { x: snake[0].x * gridSize + radius, y: snake[0].y * gridSize + radius };
+            ctx.moveTo(headCenter.x, headCenter.y);
+
+            for (let i = 1; i < snake.length; i++) {
+                const cx = snake[i].x * gridSize + radius;
+                const cy = snake[i].y * gridSize + radius;
+                ctx.lineTo(cx, cy);
+            }
+            ctx.stroke();
+
+            // [B] 머리 디자인 (더 큰 원 + 눈)
+            ctx.fillStyle = "#66BB6A";
+            ctx.beginPath();
+            ctx.arc(headCenter.x, headCenter.y, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 눈 위치 계산
+            const eyeOffset = radius / 2;
+            const eyeRadius = radius / 3.5;
+            let eyeX1, eyeY1, eyeX2, eyeY2;
+
+            if (dx === 1) { // 오른쪽
+                eyeX1 = headCenter.x + eyeOffset; eyeY1 = headCenter.y - eyeOffset;
+                eyeX2 = headCenter.x + eyeOffset; eyeY2 = headCenter.y + eyeOffset;
+            } else if (dx === -1) { // 왼쪽
+                eyeX1 = headCenter.x - eyeOffset; eyeY1 = headCenter.y - eyeOffset;
+                eyeX2 = headCenter.x - eyeOffset; eyeY2 = headCenter.y + eyeOffset;
+            } else if (dy === -1) { // 위
+                eyeX1 = headCenter.x - eyeOffset; eyeY1 = headCenter.y - eyeOffset;
+                eyeX2 = headCenter.x + eyeOffset; eyeY2 = headCenter.y - eyeOffset;
+            } else { // 아래 또는 대기
+                eyeX1 = headCenter.x - eyeOffset; eyeY1 = headCenter.y + eyeOffset;
+                eyeX2 = headCenter.x + eyeOffset; eyeY2 = headCenter.y + eyeOffset;
+            }
+
+            // 눈 흰자 & 동공
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath(); ctx.arc(eyeX1, eyeY1, eyeRadius, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(eyeX2, eyeY2, eyeRadius, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = "#000000";
+            ctx.beginPath(); ctx.arc(eyeX1, eyeY1, eyeRadius / 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(eyeX2, eyeY2, eyeRadius / 2, 0, Math.PI * 2); ctx.fill();
+
+            // [C] 꼬리 디자인 (끝부분을 살짝 다듬기)
+            const tail = snake[snake.length - 1];
+            const tailCenter = { x: tail.x * gridSize + radius, y: tail.y * gridSize + radius };
+            ctx.fillStyle = "#388E3C";
+            ctx.beginPath();
+            ctx.arc(tailCenter.x, tailCenter.y, radius - 2, 0, Math.PI * 2);
+            ctx.fill();
         }
 
-        function drawFood() {
-            const centerX = food.x * gridSize + gridSize / 2;
-            const centerY = food.y * gridSize + gridSize / 2;
+        // 2. 사과 그리기 (빨간 열매 + 잎사귀 + 나뭇가지 + 발광 효과)
+        function drawApple() {
+            const cx = food.x * gridSize + gridSize / 2;
+            const cy = food.y * gridSize + gridSize / 2;
             const radius = gridSize / 2 - 2;
 
-            // 먹이: 붉은색 원 + 빛나는 효과(Glow)
-            ctx.shadowBlur = 15;
+            // 글로우(Glow) 효과
+            ctx.shadowBlur = 12;
             ctx.shadowColor = "#FF5252";
-            drawCircle(centerX, centerY, radius, "#FF5252");
-            ctx.shadowBlur = 0; // 다른 그림에는 효과 없도록 초기화
+
+            // 빨간 사과 몸통
+            ctx.fillStyle = "#FF3333";
+            ctx.beginPath();
+            ctx.arc(cx, cy + 1, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 글로우 끄기 (다른 그림 영향 방지)
+            ctx.shadowBlur = 0;
+
+            // 광택 (하이라이트)
+            ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+            ctx.beginPath();
+            ctx.arc(cx - radius / 2.5, cy - radius / 2.5, radius / 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 꼭지 (갈색 가지)
+            ctx.strokeStyle = "#795548";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - radius);
+            ctx.lineTo(cx + 2, cy - radius - 5);
+            ctx.stroke();
+
+            // 초록색 잎사귀
+            ctx.fillStyle = "#4CAF50";
+            ctx.beginPath();
+            ctx.ellipse(cx + 5, cy - radius - 3, 4, 2, Math.PI / 4, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         function moveSnake() {
             const head = { x: snake[0].x + dx, y: snake[0].y + dy };
             snake.unshift(head);
 
-            // 먹이 충돌
             if (head.x === food.x && head.y === food.y) {
                 score += 10;
                 scoreElement.innerText = score;
                 generateFood();
             } else {
-                snake.pop(); // 먹지 않았으면 꼬리 자르기
+                snake.pop();
             }
         }
 
         function generateFood() {
-            // 지렁이 몸 위에 생성되지 않도록 루프 돌며 위치 확인
             let validPosition = false;
             while (!validPosition) {
                 food.x = Math.floor(Math.random() * tileCount);
@@ -243,11 +260,9 @@ snake_game_html = """
 
         function checkGameOver() {
             const head = snake[0];
-            // 벽 충돌
             if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
                 return true;
             }
-            // 자기 몸 충돌
             for (let i = 1; i < snake.length; i++) {
                 if (head.x === snake[i].x && head.y === snake[i].y) {
                     return true;
@@ -275,13 +290,11 @@ snake_game_html = """
             const keyPressed = event.keyCode;
             const LEFT = 37, UP = 38, RIGHT = 39, DOWN = 40;
 
-            // 게임 시작
             if (!gameStarted && [LEFT, UP, RIGHT, DOWN].includes(keyPressed)) {
                 gameStarted = true;
                 isGameOver = false;
             }
 
-            // 반대 방향 이동 금지 로직 포함
             if (keyPressed === LEFT && dx !== 1) { dx = -1; dy = 0; }
             if (keyPressed === UP && dy !== 1) { dx = 0; dy = -1; }
             if (keyPressed === RIGHT && dx !== -1) { dx = 1; dy = 0; }
@@ -290,33 +303,30 @@ snake_game_html = """
 
         function resetGame() {
             clearInterval(gameInterval);
-            // 초기 위치 및 지렁이 길이(3칸) 설정
             snake = [
                 { x: 10, y: 10 },
                 { x: 9, y: 10 },
                 { x: 8, y: 10 }
             ];
-            dx = 1; // 시작할 때 우측으로 이동
+            dx = 1;
             dy = 0;
             score = 0;
-            gameStarted = true; // 버튼 누르면 바로 시작
+            gameStarted = true;
             isGameOver = false;
             scoreElement.innerText = score;
             generateFood();
             
             clearCanvas();
             drawGrid();
-            drawFood();
-            drawSnake();
+            drawApple();
+            drawSmoothSnake();
             
-            // 게임 속도 (100ms)
             gameInterval = setInterval(gameLoop, 100);
         }
 
-        // 초기 화면 그리기
         clearCanvas();
         drawGrid();
-        drawGameOver(); // 시작 전 화면
+        drawGameOver();
         ctx.fillStyle = "white";
         ctx.font = "24px 'Segoe UI'";
         ctx.textAlign = "center";
@@ -327,6 +337,4 @@ snake_game_html = """
 </html>
 """
 
-# Streamlit 화면에 HTML 컴포넌트 렌더링
-# 캔버스 600 + 여백 고려하여 높이 설정
 components.html(snake_game_html, height=800, scrolling=False)
